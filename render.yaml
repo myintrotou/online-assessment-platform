@@ -1,0 +1,51 @@
+# Render Blueprint — deploys the API (Docker) and the Angular app (static site).
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: assessment-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Swagger__Enabled
+        value: "true"
+      - key: Jwt__Key
+        generateValue: true
+      - key: Ai__Provider
+        value: Gemini
+      - key: Ai__Model
+        value: gemini-3.6-flash
+      - key: Ai__ApiKey
+        sync: false            # paste your Gemini key in the Render dashboard
+      - key: DATABASE_URL
+        sync: false            # Neon pooled connection string
+      - key: DATABASE_URL_UNPOOLED
+        sync: false            # Neon direct connection string
+      - key: Cors__Origins__0
+        sync: false            # set to the web app's URL (or * to allow any)
+
+  - type: web
+    name: assessment-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: >
+      npm ci && npm run build &&
+      node -e "const f=require('fs'),d='dist/frontend/browser';for(const n of f.readdirSync(d))if(n.endsWith('.js'))f.writeFileSync(d+'/'+n,f.readFileSync(d+'/'+n,'utf8').split('__API_URL__').join(process.env.API_URL||''))"
+    staticPublishPath: dist/frontend/browser
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_URL
+        sync: false            # set to the API's URL, e.g. https://assessment-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
