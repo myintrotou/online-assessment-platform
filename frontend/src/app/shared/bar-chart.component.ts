@@ -36,13 +36,15 @@ export class BarChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private chart?: Chart;
+  private viewReady = false;
 
   ngAfterViewInit(): void {
+    this.viewReady = true;
     this.render();
   }
 
   ngOnChanges(): void {
-    if (this.chart) this.render();
+    if (this.viewReady) this.render();
   }
 
   ngOnDestroy(): void {
